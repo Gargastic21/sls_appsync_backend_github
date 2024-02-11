@@ -1,0 +1,9 @@
+{
+  "dependencies": {
+    "aws-sdk": "^2.1540.0",
+    "cfn-resolver-lib": "^1.1.7",
+    "serverless-appsync-plugin": "^2.6.0",
+    "serverless-appsync-simulator": "^0.20.0",
+    "serverless-offline": "^13.3.2"
+  }
+}

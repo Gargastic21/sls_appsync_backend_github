@@ -1,0 +1,125 @@
+service: sls-appsync-backend
+frameworkVersion: "3"
+
+provider:
+  name: aws
+  timeout: 30
+  runtime: nodejs18.x
+  region: ${env:REGION, 'us-east-1'}
+  stage: ${opt:stage, 'local'}
+
+  environment:
+    STAGE: ${self:provider.stage}
+    REGION: ${self:provider.region}
+    SERVICE_NAME: ${self:service}-${self:provider.stage}
+    DYNAMODB: ${self:service}-${self:provider.stage}
+
+  iamRoleStatements:
+      - Effect: Allow
+        Action:
+          - dynamodb:GetItem
+          - dynamodb:UpdateItem
+          - dynamodb:DeleteItem
+          - dynamodb:PutItem
+        Resource: "arn:aws:dynamodb:${opt:region, self:provider.region}:*:table/${self:provider.environment.DYNAMODB}"
+      - Effect: Allow
+        Action:
+          - lambda:invokeFunction
+        Resource: "*" 
+
+plugins:
+  - serverless-appsync-simulator
+  - serverless-appsync-plugin 
+  - serverless-offline
+
+
+functions:
+  createblog:
+    handler: lambdas/createblog.handler
+    name: createblog-${self:provider.stage}
+  getBlog:
+    handler: lambdas/getblog.handler
+    name: getBlog-${self:provider.stage}
+  getallblogs:
+    handler: lambdas/get_all_blogs.handler
+    name: getallblogs-${self:provider.stage}
+  deleteblog:
+    handler: lambdas/delete_blog.handler
+    name: deleteblog-${self:provider.stage}
+
+custom:
+  appSync:
+    name: appsync-crud-api
+    schema: schema.api.graphql
+    authenticationType: API_KEY
+    serviceRole: "AppSyncServiceRole"
+    mappingTemplates:
+      - dataSource: "getBlog"
+        type: Query
+        field: "getBlog"
+        request: "common-request.vtl"
+        response: "common-response.vtl"
+      - dataSource: "createblog"
+        type: Mutation
+        field: "createblog"
+        request: "common-request.vtl"
+        response: "common-response.vtl"
+      - dataSource: "getallblogs"
+        type: Query
+        field: "getallblogs"
+        request: "common-request.vtl"
+        response: "common-response.vtl"
+      - dataSource: "deleteblog"
+        type: Mutation
+        field: "deleteblog"
+        request: "common-request.vtl"
+        response: "common-response.vtl"
+
+    dataSources:
+      - type: AWS_LAMBDA
+        name: createblog
+        description: 'Lambda'
+        config:
+          functionName: createblog           
+      - type: AWS_LAMBDA
+        name: getBlog
+        description: 'Lambda'
+        config:
+          functionName: "getBlog"
+      - type: AWS_LAMBDA
+        name: getallblogs
+        description: 'Lambda'
+        config:
+          functionName: "getallblogs"
+      - type: AWS_LAMBDA
+        name: deleteblog
+        description: 'Lambda'
+        config:
+          functionName: "deleteblog"
+
+resources:
+  Resources:
+    # AppSync lambda role
+    AppSyncServiceRole:
+      Type: "AWS::IAM::Role"
+      Properties:
+        RoleName: "Lambda-${self:custom.appSync.serviceRole}"
+        AssumeRolePolicyDocument:
+          Version: "2012-10-17"
+          Statement:
+            - Effect: "Allow"
+              Principal:
+                Service:
+                  - "appsync.amazonaws.com"
+              Action:
+                - "sts:AssumeRole"
+        Policies:
+          - PolicyName: "Lambda-${self:custom.appSync.serviceRole}-Policy"
+            PolicyDocument:
+              Version: "2012-10-17"
+              Statement:
+                - Effect: "Allow"
+                  Action:
+                    - "lambda:invokeFunction"
+                  Resource:
+                    - "arn:aws:lambda:${self:provider.region}:*:*"
