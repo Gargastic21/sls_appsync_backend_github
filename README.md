@@ -2,8 +2,12 @@
 
 GraphQL API using Serverless + AWS AppSync + DynamoDB + Lambda resolvers + API KEY.
 
-## Installation
+## Reference graphql links
+```bash
+https://medium.com/@facundofasciolo/graphql-api-using-serverless-aws-appsync-dynamodb-lambda-resolvers-cognito-part-1-8ec947614b86
+```
 
+## Installation
 Install Nodejs.
 ```bash
 Npm install -g serverless
